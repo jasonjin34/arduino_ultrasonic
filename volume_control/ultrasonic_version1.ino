@@ -10,8 +10,8 @@
 /*
 * I/O setup for Sensor
 */
-const int trigger_ultraleft = 13; // trigger pin for 1st Ultrasonic sensors
-const int echo_ultraleft = 12; // Echo pin 
+const int trigger_ultraleft = 4; // trigger pin for 1st Ultrasonic sensors
+const int echo_ultraleft = 3; // Echo pin 
 
 /*
  *  setup global variable for speed
@@ -43,7 +43,6 @@ void loop() {
                             //ultrasonic sensor can only work under the control mode
 
   Serial.println(ultra_left.readAvgDisctanceInCm(3));
-  
   distance_left = f_distance(ultra_left.readAvgDisctanceInCm(3));
   if(distance_left >= 10 && distance_left <= 15)
   {
@@ -56,15 +55,15 @@ void loop() {
       while(f_distance(ultra_left.readAvgDisctanceInCm(3)) < 35)
       {
         distance_left = f_distance(ultra_left.readAvgDisctanceInCm(3));
-        if( distance_left < 9)
+        if( distance_left <= 9)
         {
           Serial.println("Volumedown"); 
-          delay(250);
+          delay(100);
         }
-        if( distance_left > 18)
+        if( distance_left >= 17)
         {
           Serial.println("Volumeup");
-          delay(250);
+          delay(100);
         }
       }
     }

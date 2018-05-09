@@ -2,6 +2,7 @@
 #include <SPI.h>
 #include <Adafruit_LSM9DS1.h>
 #include <Adafruit_Sensor.h>  // not used in this demo but required!
+#include <Mouse.h>
 
 // i2c
 Adafruit_LSM9DS1 lsm = Adafruit_LSM9DS1();
@@ -63,7 +64,7 @@ void setup()
 void loop() 
 {
   lsm.read();  /* ask it to read in the data */ 
-
+  
   /* Get a new sensor event */ 
   sensors_event_t a, m, g, temp;
 
