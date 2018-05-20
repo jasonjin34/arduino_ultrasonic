@@ -1,3 +1,4 @@
+#include <Keyboard.h>
 #include <Mouse.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM9DS1.h>
@@ -42,32 +43,50 @@ const int numReadings = 8;
 //get the data from gyroscope 
 double readings_array_z[numReadings];
 double readings_array_y[numReadings];
-double readings_array_click[numReadings];
+double readings_array_updown[numReadings];
+double readings_array_leftright[numReadings];
+
 int readIndex = 0;
 double total_z = 0;
 double total_y = 0;
-double total_click = 0;
+double total_updown = 0;
+double total_leftright = 0;
 double average_z = 0;
 double average_y = 0;
-double average_click = 0;
+double average_updown = 0;
+double average_leftright = 0;
 
 //setup the botton pin
 const int buttonPin = 9;
 int buttonState;
 int lastButtonState = LOW;
 
+//setup the press button
+const int buttonPin_press = 8;
+int pressState;
+int lastPressState = LOW;
+
+//setup the windows key
+char down = KEY_DOWN_ARROW;
+char up = KEY_UP_ARROW;
+char left = KEY_LEFT_ARROW;
+char right = KEY_RIGHT_ARROW;
+
 void setup(){
   Wire.begin();
-  //Serial.begin(115200);
+  Serial.begin(115200);
   pinMode(buttonPin, INPUT);
+  pinMode(buttonPin_press, INPUT);
+  
   //initalize all the reading to 0
   for ( int thisReading = 0; thisReading < numReadings; thisReading++)
   {
     readings_array_z[thisReading] = 0;
     readings_array_y[thisReading] = 0;
-    readings_array_click[thisReading] = 0;
+    readings_array_updown[thisReading] = 0;
+    readings_array_leftright[thisReading] = 0;
   }
-  /*
+    
   while (!Serial) {
     delay(1); // will pause Zero, Leonardo, etc until serial console opens
   }
@@ -83,9 +102,10 @@ void setup(){
   //Serial.println("Found LSM9DS1 9DOF");
 
   // helper to just set the default scaling we want, see above!
-  */
+ 
   setupSensor();
   Mouse.begin();
+  Keyboard.begin();
 }
 
 void loop() 
@@ -94,23 +114,25 @@ void loop()
 
   /* Get a new sensor event */ 
   sensors_event_t a, m, g, temp;
-  lsm.getEvent(&a, &m, &g, &temp);
-  
+  lsm.getEvent(&a, &m, &g, &temp);  
 
   //subtract the last reading:
   total_z = total_z - readings_array_z[readIndex];
   total_y = total_y - readings_array_y[readIndex];
-  total_click = total_click - readings_array_click[readIndex];
+  total_updown = total_updown - readings_array_updown[readIndex];
+  total_leftright = total_leftright - readings_array_leftright[readIndex];
   
   //read from the sensor:
   readings_array_z[readIndex] = g.gyro.z; //get the data from gyroscope from 
   readings_array_y[readIndex] = g.gyro.x;
-  readings_array_click[readIndex] = a.acceleration.y;
+  readings_array_updown[readIndex] = a.acceleration.y;
+  readings_array_leftright[readIndex] = a.acceleration.x;
   
   //add the reading to the total:
   total_z = total_z + readings_array_z[readIndex];
   total_y = total_y + readings_array_y[readIndex];
-  total_click = total_click + readings_array_click[readIndex];
+  total_updown = total_updown + readings_array_updown[readIndex];
+  total_leftright = total_leftright + readings_array_leftright[readIndex];
   readIndex = readIndex + 1;
 
   //if we are at the end of the array
@@ -121,29 +143,71 @@ void loop()
   //calculate the average
   average_z = total_z / numReadings;
   average_y = total_y / numReadings;
-  average_click = total_click / numReadings;
+  average_updown = total_updown / numReadings;
+  average_leftright = total_leftright / numReadings;
   
-  double z_arg = (average_z + 12)/10 -0.8;
+  double z_arg = (average_z + 12)/10 -0.8; //deducte the offset value
   double y_arg = (average_y + 12)/10 -1.5;
-  double click_avg = (average_click)*10;
+  //Serial.println(z_arg);
+  //Serial.println(y_arg);
 
-  //Serial.println(click_avg);
+  double updown_avg = (average_updown)*10;
+  double leftright_avg = average_leftright*10;
 
-  if(click_avg < -65)
+  //click right and left key
+  if(leftright_avg < -50)
   {
-    Mouse.click();
-    delay(1500);
+    Keyboard.press(right);
+    delay(50);
+    Keyboard.release(right);
+  }
+  if(leftright_avg > 50)
+  {
+    Keyboard.press(left);
+    delay(50);
+    Keyboard.release(left);
   }
 
 
-  //Serial.println(y_arg);  
-  //left and right offset distance is 0.8
-  //set up the mouse move distance
+   
+  //click up and down key
+  if(updown_avg < -50)
+  {
+    Keyboard.press(down);
+    delay(50);
+    Keyboard.release(down);
+  }
 
+  if(updown_avg > 50)
+  {
+    Keyboard.press(up);
+    delay(50);
+    Keyboard.release(up);
+  }
+
+  /*
+   * press button function
+  */
+  pressState = digitalRead(buttonPin_press);
+  if(pressState == HIGH)
+  {
+    Keyboard.releaseAll();
+    Mouse.press();
+    Serial.println("hold");
+    delay(50);
+    double z_mouse = z_arg*8;
+    double y_mouse = -y_arg*6;
+    Mouse.move(z_mouse,y_mouse);
+  }
+  if(pressState == LOW)
+  {
+    Mouse.release();
+  }
 
   buttonState = digitalRead(buttonPin);
   if(buttonState == HIGH)
   {
+    Keyboard.releaseAll();
     //Serial.println("pressed");
     double z_mouse = z_arg*8;
     double y_mouse = -y_arg*6;
@@ -163,5 +227,5 @@ void loop()
   Serial.print("\tY: "); Serial.print(g.gyro.y);      Serial.print(" dps");
   Serial.print("\tZ: "); Serial.print(g.gyro.z);      Serial.println(" dps");
   */
-  delay(40);
+  delay(10);
 }
